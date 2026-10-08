@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบงานวิชาการ | ทะเบียนนักเรียน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- ส่วนหัวเรื่อง และปุ่มเพิ่มนักเรียน -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-800 mb-1">ทะเบียนนักเรียน</h1>
+                <p class="text-sm text-slate-500">จัดการข้อมูลนักเรียนและค้นหารายชื่อได้อย่างรวดเร็ว</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i> เพิ่มนักเรียน
+                </button>
+            </div>
+        </div>
+
+        <!-- แถบเครื่องมือค้นหา และตัวกรอง -->
+        <div class="flex flex-col md:flex-row gap-3 bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+            <div class="relative flex-1">
+                <i class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="searchInput" placeholder="ค้นหาชื่อ หรือ รหัสนักเรียน..." 
+                    class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </div>
+            <select id="classFilter" class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <option value="">🎓 ทุกชั้นเรียน</option>
+                <option value="ป.1/1">ป.1/1</option>
+                <option value="ป.1/2">ป.1/2</option>
+                <option value="ป.1/3">ป.1/3</option>
+            </select>
+            <select id="statusFilter" class="bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-blue-500">
+                <option value="">🏷️ สถานะทั้งหมด</option>
+                <option value="กำลังเรียน">กำลังเรียน</option>
+                <option value="พักการเรียน">พักการเรียน</option>
+                <option value="ย้ายออก">ย้ายออก</option>
+            </select>
+        </div>
+
+        <!-- แดชบอร์ดสรุปยอด -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl"><i class="fa-solid fa-users"></i></div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">นักเรียนทั้งหมด</p>
+                    <p class="text-xl font-bold text-slate-800" id="countTotal">0 <span class="text-sm font-normal text-slate-500">คน</span></p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl"><i class="fa-solid fa-user-check"></i></div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">กำลังเรียน</p>
+                    <p class="text-xl font-bold text-slate-800" id="countActive">0 <span class="text-sm font-normal text-slate-500">คน</span></p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl"><i class="fa-solid fa-pause"></i></div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">พักการเรียน</p>
+                    <p class="text-xl font-bold text-slate-800" id="countPaused">0 <span class="text-sm font-normal text-slate-500">คน</span></p>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xl"><i class="fa-solid fa-user-xmark"></i></div>
+                <div>
+                    <p class="text-xs text-slate-500 font-medium">ย้ายออก</p>
+                    <p class="text-xl font-bold text-slate-800" id="countLeft">0 <span class="text-sm font-normal text-slate-500">คน</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ตารางข้อมูล -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex justify-between items-center">
+                <h2 class="font-semibold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list text-blue-600"></i> รายชื่อนักเรียน
+                </h2>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 text-sm bg-white">
+                            <th class="py-3 px-4 font-semibold text-slate-500">รหัสนักเรียน</th>
+                            <th class="py-3 px-4 font-semibold text-slate-500">ชื่อ - สกุล</th>
+                            <th class="py-3 px-4 font-semibold text-slate-500">ชั้น</th>
+                            <th class="py-3 px-4 font-semibold text-slate-500 text-center">เลขที่</th>
+                            <th class="py-3 px-4 font-semibold text-slate-500">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody" class="text-sm">
+                        <tr><td colspan="5" class="py-8 text-center text-slate-400">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ฟอร์มเพิ่มนักเรียน -->
+    <div id="addModal" class="fixed inset-0 bg-slate-900/50 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fade-in">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="font-bold text-lg text-slate-800">เพิ่มนักเรียนใหม่</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="addForm" onsubmit="submitForm(event)" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">รหัสนักเรียน *</label>
+                        <input type="text" id="f_id" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">เลขที่ *</label>
+                        <input type="number" id="f_num" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อ - สกุล *</label>
+                    <input type="text" id="f_name" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ชั้นเรียน *</label>
+                        <select id="f_class" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
+                            <option value="ป.1/1">ป.1/1</option>
+                            <option value="ป.1/2">ป.1/2</option>
+                            <option value="ป.1/3">ป.1/3</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">สถานะ</label>
+                        <select id="f_status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white">
+                            <option value="กำลังเรียน">กำลังเรียน</option>
+                            <option value="พักการเรียน">พักการเรียน</option>
+                            <option value="ย้ายออก">ย้ายออก</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-2 border-t border-slate-100">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">ยกเลิก</button>
+                    <button type="submit" id="submitBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition flex items-center gap-2">
+                        บันทึกข้อมูล
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ นำ URL ของ Web App (เวอร์ชันล่าสุดที่เพิ่ง Deploy) มาใส่ตรงนี้ครับ
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxPN5ZSjY5eAD78MCmxU06MX6WWwcO_zbZ4Z1iGljidTQmncJ8tJAtAAHplLBA1Fal5/exec';
+        
+        let allStudents = [];
+
+        // 1. ฟังก์ชันโหลดข้อมูลนักเรียน
+        async function loadData() {
+            try {
+                const response = await fetch(`${SCRIPT_URL}?action=getStudents`);
+                const result = await response.json();
+                allStudents = Array.isArray(result) ? result : (result.data || []);
+                renderTable(allStudents);
+                updateDashboard(allStudents);
+            } catch (error) {
+                document.getElementById('tableBody').innerHTML = `<tr><td colspan="5" class="py-4 text-center text-red-500">เกิดข้อผิดพลาด: ${error.message}</td></tr>`;
+            }
+        }
+
+        // 2. ฟังก์ชันวาดตาราง
+        function renderTable(data) {
+            const tbody = document.getElementById('tableBody');
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(s => {
+                // กำหนดสีของสถานะ
+                let statusColor = 'bg-slate-100 text-slate-600';
+                if(s['สถานะ'] === 'กำลังเรียน') statusColor = 'bg-emerald-100 text-emerald-700';
+                if(s['สถานะ'] === 'พักการเรียน') statusColor = 'bg-amber-100 text-amber-700';
+                if(s['สถานะ'] === 'ย้ายออก') statusColor = 'bg-red-100 text-red-700';
+
+                html += `
+                    <tr class="border-b border-slate-100 hover:bg-slate-50 transition">
+                        <td class="py-3 px-4">${s['รหัสนักเรียน']}</td>
+                        <td class="py-3 px-4 font-medium text-slate-700">${s['ชื่อ-สกุล']}</td>
+                        <td class="py-3 px-4">${s['ชั้นเรียน']}</td>
+                        <td class="py-3 px-4 text-center">${s['เลขที่']}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-2.5 py-1 text-xs font-semibold rounded-full ${statusColor}">
+                                <i class="fa-solid fa-circle text-[8px] mr-1"></i>${s['สถานะ'] || 'ไม่มีข้อมูล'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // 3. ฟังก์ชันอัปเดตตัวเลขบน Dashboard
+        function updateDashboard(data) {
+            document.getElementById('countTotal').innerHTML = `${data.length} <span class="text-sm font-normal text-slate-500">คน</span>`;
+            document.getElementById('countActive').innerHTML = `${data.filter(s => s['สถานะ'] === 'กำลังเรียน').length} <span class="text-sm font-normal text-slate-500">คน</span>`;
+            document.getElementById('countPaused').innerHTML = `${data.filter(s => s['สถานะ'] === 'พักการเรียน').length} <span class="text-sm font-normal text-slate-500">คน</span>`;
+            document.getElementById('countLeft').innerHTML = `${data.filter(s => s['สถานะ'] === 'ย้ายออก').length} <span class="text-sm font-normal text-slate-500">คน</span>`;
+        }
+
+        // 4. ระบบตัวกรองและค้นหา
+        function filterData() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const classVal = document.getElementById('classFilter').value;
+            const statusVal = document.getElementById('statusFilter').value;
+
+            const filtered = allStudents.filter(s => {
+                const matchSearch = String(s['รหัสนักเรียน']).includes(search) || String(s['ชื่อ-สกุล']).toLowerCase().includes(search);
+                const matchClass = classVal === '' || s['ชั้นเรียน'] === classVal;
+                const matchStatus = statusVal === '' || s['สถานะ'] === statusVal;
+                return matchSearch && matchClass && matchStatus;
+            });
+            renderTable(filtered);
+        }
+
+        document.getElementById('searchInput').addEventListener('input', filterData);
+        document.getElementById('classFilter').addEventListener('change', filterData);
+        document.getElementById('statusFilter').addEventListener('change', filterData);
+
+        // 5. ระบบบันทึกข้อมูล (POST)
+        async function submitForm(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submitBtn');
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+            btn.disabled = true;
+
+            const payload = {
+                action: 'addStudent',
+                studentId: document.getElementById('f_id').value,
+                name: document.getElementById('f_name').value,
+                className: document.getElementById('f_class').value,
+                number: document.getElementById('f_num').value,
+                status: document.getElementById('f_status').value
+            };
+
+            try {
+                // ส่งข้อมูลไปที่ GAS โดยใช้ text/plain เพื่อเลี่ยงปัญหา CORS
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(payload)
+                });
+                
+                // ถ้าระบบส่งผ่าน ให้รีเซ็ตฟอร์ม ปิดหน้าต่าง และโหลดตารางใหม่
+                document.getElementById('addForm').reset();
+                closeModal();
+                await loadData();
+            } catch (error) {
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+            } finally {
+                btn.innerHTML = 'บันทึกข้อมูล';
+                btn.disabled = false;
+            }
+        }
+
+        // เปิด/ปิด Modal
+        function openModal() { document.getElementById('addModal').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('addModal').classList.add('hidden'); }
+
+        // เริ่มโหลดข้อมูลตอนเปิดเว็บ
+        loadData();
+    </script>
+</body>
+</html>
